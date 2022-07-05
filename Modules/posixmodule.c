@@ -500,6 +500,11 @@ PyOS_AfterFork(void)
 
 
 #ifdef MS_WINDOWS
+#define UNICODE 1
+#include <psapi.h>
+//#include <tchar.h>
+#include <strsafe.h>
+DWORD GetFinalPathNameByHandleW_XP(HANDLE hFile, LPWSTR  lpszFilePath, DWORD  cchFilePath, DWORD  dwFlags);
 /* defined in fileutils.c */
 void _Py_time_t_to_FILE_TIME(time_t, int, FILETIME *);
 void _Py_attribute_data_to_stat(BY_HANDLE_FILE_INFORMATION *,
@@ -1771,41 +1776,6 @@ win32_xstat_impl(const wchar_t *path, struct _Py_stat_struct *result,
             }
             /* FILE_TYPE_UNKNOWN, e.g. \\.\mailslot\waitfor.exe\spam */
             goto cleanup;
-        }
-
-        /* Query the reparse tag, and traverse a non-link. */
-        if (!traverse) {
-            if (!GetFileInformationByHandleEx(hFile, FileAttributeTagInfo,
-                    &tagInfo, sizeof(tagInfo))) {
-                /* Allow devices that do not support FileAttributeTagInfo. */
-                switch (GetLastError()) {
-                case ERROR_INVALID_PARAMETER:
-                case ERROR_INVALID_FUNCTION:
-                case ERROR_NOT_SUPPORTED:
-                    tagInfo.FileAttributes = FILE_ATTRIBUTE_NORMAL;
-                    tagInfo.ReparseTag = 0;
-                    break;
-                default:
-                    retval = -1;
-                    goto cleanup;
-                }
-            } else if (tagInfo.FileAttributes &
-                         FILE_ATTRIBUTE_REPARSE_POINT) {
-                if (IsReparseTagNameSurrogate(tagInfo.ReparseTag)) {
-                    if (isUnhandledTag) {
-                        /* Traversing previously failed for either this link
-                           or its target. */
-                        SetLastError(ERROR_CANT_ACCESS_FILE);
-                        retval = -1;
-                        goto cleanup;
-                    }
-                /* Traverse a non-link, but not if traversing already failed
-                   for an unhandled tag. */
-                } else if (!isUnhandledTag) {
-                    CloseHandle(hFile);
-                    return win32_xstat_impl(path, result, TRUE);
-                }
-            }
         }
 
         if (!GetFileInformationByHandle(hFile, &fileInfo)) {
@@ -3962,7 +3932,7 @@ os__getfinalpathname_impl(PyObject *module, path_t *path)
     Py_BEGIN_ALLOW_THREADS
     hFile = CreateFileW(
         path->wide,
-        0, /* desired access */
+		GENERIC_READ, /* desired access */
         0, /* share mode */
         NULL, /* security attributes */
         OPEN_EXISTING,
@@ -3979,20 +3949,27 @@ os__getfinalpathname_impl(PyObject *module, path_t *path)
        target path name. */
     while (1) {
         Py_BEGIN_ALLOW_THREADS
-        result_length = GetFinalPathNameByHandleW(hFile, target_path,
+        result_length = GetFinalPathNameByHandleW_XP(hFile, target_path,
                                                   buf_size, VOLUME_NAME_DOS);
         Py_END_ALLOW_THREADS
-
-        if (!result_length) {
+			if (!result_length) {
+		       WCHAR szTempFile[MAX_PATH];
+		         StringCchPrintf(szTempFile,
+		      	MAX_PATH,
+			    L"\\\\?\\%s",
+					 path->wide);
+		StringCchCopyN(target_path, MAX_PATH + 1, szTempFile, wcslen(szTempFile));
+		result_length = wcslen(target_path);
+		}
+		//printf("\norig_%ls*\ncopy_%ls*%d\n", path->wide, target_path, result_length);
+		if (!result_length) {
             result = win32_error_object("GetFinalPathNameByHandleW",
                                          path->object);
             goto cleanup;
         }
-
         if (result_length < buf_size) {
             break;
         }
-
         wchar_t *tmp;
         tmp = PyMem_Realloc(target_path != buf ? target_path : NULL,
                             result_length * sizeof(*tmp));
@@ -4000,16 +3977,13 @@ os__getfinalpathname_impl(PyObject *module, path_t *path)
             result = PyErr_NoMemory();
             goto cleanup;
         }
-
         buf_size = result_length;
         target_path = tmp;
     }
-
     result = PyUnicode_FromWideChar(target_path, result_length);
     if (result && path->narrow) {
         Py_SETREF(result, PyUnicode_EncodeFSDefault(result));
     }
-
 cleanup:
     if (target_path != buf) {
         PyMem_Free(target_path);
@@ -8230,8 +8204,8 @@ os_symlink_impl(PyObject *module, path_t *src, path_t *dst,
     if (target_is_directory || _check_dirW(src->wide, dst->wide)) {
         flags |= SYMBOLIC_LINK_FLAG_DIRECTORY;
     }
-
-    result = CreateSymbolicLinkW(dst->wide, src->wide, flags);
+	result = 0;
+    //result = CreateSymbolicLinkW(dst->wide, src->wide, flags);
     _Py_END_SUPPRESS_IPH
     Py_END_ALLOW_THREADS
 
@@ -8251,7 +8225,7 @@ os_symlink_impl(PyObject *module, path_t *src, path_t *dst,
         calls to CreateSymbolicLink.
         */
         flags &= ~(SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
-        result = CreateSymbolicLinkW(dst->wide, src->wide, flags);
+        //result = CreateSymbolicLinkW(dst->wide, src->wide, flags);
         _Py_END_SUPPRESS_IPH
         Py_END_ALLOW_THREADS
 
@@ -12462,8 +12436,9 @@ os_cpu_count_impl(PyObject *module)
     int ncpu = 0;
 #ifdef MS_WINDOWS
     /* Declare prototype here to avoid pulling in all of the Win7 APIs in 3.8 */
-    DWORD WINAPI GetActiveProcessorCount(WORD group);
-    ncpu = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+//    DWORD WINAPI GetActiveProcessorCount(WORD group);
+//    ncpu = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+      ncpu = 1;
 #elif defined(__hpux)
     ncpu = mpctl(MPC_GETNUMSPUS, NULL, NULL);
 #elif defined(HAVE_SYSCONF) && defined(_SC_NPROCESSORS_ONLN)
@@ -13693,10 +13668,10 @@ error:
 /* bpo-36085: Helper functions for managing DLL search directories
  * on win32
  */
-
+/*
 typedef DLL_DIRECTORY_COOKIE (WINAPI *PAddDllDirectory)(PCWSTR newDirectory);
 typedef BOOL (WINAPI *PRemoveDllDirectory)(DLL_DIRECTORY_COOKIE cookie);
-
+*/
 /*[clinic input]
 os._add_dll_directory
 
@@ -13716,7 +13691,7 @@ static PyObject *
 os__add_dll_directory_impl(PyObject *module, path_t *path)
 /*[clinic end generated code: output=80b025daebb5d683 input=1de3e6c13a5808c8]*/
 {
-    HMODULE hKernel32;
+ /*   HMODULE hKernel32;
     PAddDllDirectory AddDllDirectory;
     DLL_DIRECTORY_COOKIE cookie = 0;
     DWORD err = 0;
@@ -13725,9 +13700,10 @@ os__add_dll_directory_impl(PyObject *module, path_t *path)
         return NULL;
     }
 
+	*/
     /* For Windows 7, we have to load this. As this will be a fairly
        infrequent operation, just do it each time. Kernel32 is always
-       loaded. */
+       loaded. *//*
     Py_BEGIN_ALLOW_THREADS
     if (!(hKernel32 = GetModuleHandleW(L"kernel32")) ||
         !(AddDllDirectory = (PAddDllDirectory)GetProcAddress(
@@ -13742,7 +13718,8 @@ os__add_dll_directory_impl(PyObject *module, path_t *path)
                                       path->object, err);
     }
 
-    return PyCapsule_New(cookie, "DLL directory cookie", NULL);
+    return PyCapsule_New(cookie, "DLL directory cookie", NULL);*/
+	Py_RETURN_NONE;
 }
 
 /*[clinic input]
@@ -13761,7 +13738,7 @@ static PyObject *
 os__remove_dll_directory_impl(PyObject *module, PyObject *cookie)
 /*[clinic end generated code: output=594350433ae535bc input=c1d16a7e7d9dc5dc]*/
 {
-    HMODULE hKernel32;
+  /*  HMODULE hKernel32;
     PRemoveDllDirectory RemoveDllDirectory;
     DLL_DIRECTORY_COOKIE cookieValue;
     DWORD err = 0;
@@ -13774,11 +13751,11 @@ os__remove_dll_directory_impl(PyObject *module, PyObject *cookie)
 
     cookieValue = (DLL_DIRECTORY_COOKIE)PyCapsule_GetPointer(
         cookie, "DLL directory cookie");
-
+		*/
     /* For Windows 7, we have to load this. As this will be a fairly
        infrequent operation, just do it each time. Kernel32 is always
        loaded. */
-    Py_BEGIN_ALLOW_THREADS
+    /*Py_BEGIN_ALLOW_THREADS
     if (!(hKernel32 = GetModuleHandleW(L"kernel32")) ||
         !(RemoveDllDirectory = (PRemoveDllDirectory)GetProcAddress(
             hKernel32, "RemoveDllDirectory")) ||
@@ -13795,7 +13772,7 @@ os__remove_dll_directory_impl(PyObject *module, PyObject *cookie)
     if (PyCapsule_SetName(cookie, NULL)) {
         return NULL;
     }
-
+*/
     Py_RETURN_NONE;
 }
 
@@ -14852,3 +14829,106 @@ INITFUNC(void)
 #ifdef __cplusplus
 }
 #endif
+
+#define BUFSIZE 256
+DWORD GetFinalPathNameByHandleW_XP(HANDLE hFile, LPWSTR  lpszFilePath, DWORD  cchFilePath, DWORD  dwFlags)
+{
+	BOOL bSuccess = FALSE;
+	//TCHAR pszFilename[MAX_PATH + 1];
+	//static WCHAR pszFilename[BUFSIZE];
+	WCHAR * pszFilename = lpszFilePath;
+	HANDLE hFileMap;
+
+	// Get the file size.
+	DWORD dwFileSizeHi = 0;
+	DWORD dwFileSizeLo = GetFileSize(hFile, &dwFileSizeHi);
+	if (dwFileSizeLo == 0 && dwFileSizeHi == 0)
+	{
+//		printf("Cannot map a file with a length of zero__11__.\n");
+		return FALSE;
+	}
+	// Create a file mapping object.
+	hFileMap = CreateFileMapping(hFile,
+		NULL,
+		PAGE_READONLY,
+		0,
+		1,
+		NULL);
+
+	if (hFileMap)
+	{
+		// Create a file mapping to get the file name.
+		void* pMem = MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 1);
+
+		if (pMem)
+		{
+			if (GetMappedFileNameW(GetCurrentProcess(),
+				pMem,
+				pszFilename,
+				MAX_PATH))
+			{
+				// Translate path with device name to drive letters.
+				WCHAR szTemp[BUFSIZE];
+				szTemp[0] = '\0';
+
+				if (GetLogicalDriveStringsW(BUFSIZE - 1, szTemp))
+				{
+					WCHAR szName[MAX_PATH];
+					WCHAR szDrive[3] = TEXT(L" :");
+					BOOL bFound = FALSE;
+					WCHAR* p = szTemp;
+
+					do
+					{
+						// Copy the drive letter to the template string
+						*szDrive = *p;
+
+						// Look up each device name
+						if (QueryDosDeviceW(szDrive, szName, MAX_PATH))
+						{
+							size_t uNameLen = wcslen(szName);
+
+							if (uNameLen < MAX_PATH)
+							{
+								bFound = _wcsnicmp(pszFilename, szName, uNameLen) == 0
+									&& *(pszFilename + uNameLen) == L'\\';
+
+								if (bFound)
+								{
+									// Reconstruct pszFilename using szTempFile
+									// Replace device path with DOS path
+									WCHAR szTempFile[MAX_PATH];
+									StringCchPrintf(szTempFile,
+										MAX_PATH,
+										TEXT(L"\\\\?\\%s%s"),
+										szDrive,
+										pszFilename + uNameLen);
+									StringCchCopyN(pszFilename, MAX_PATH + 1, szTempFile, wcslen(szTempFile));
+								}
+							}
+						}
+
+						// Go to the next NULL character.
+						while (*p++);
+					} while (!bFound && *p); // end of string
+					WCHAR devMup[] = L"\\Device\\Mup";
+					if (wcsstr(pszFilename, devMup) == pszFilename) {
+						WCHAR szTempFile[MAX_PATH];
+						StringCchPrintf(szTempFile,
+							MAX_PATH,
+							TEXT(L"\\\\?\\UNC%s"),
+							pszFilename + wcslen(devMup));
+						StringCchCopyN(pszFilename, MAX_PATH + 1, szTempFile, wcslen(szTempFile));
+					}
+				}
+			}
+			bSuccess = TRUE;
+			UnmapViewOfFile(pMem);
+		}
+		CloseHandle(hFileMap);
+		lpszFilePath = pszFilename;
+		return wcslen(pszFilename);
+	} else {
+		return FALSE;
+	}
+}

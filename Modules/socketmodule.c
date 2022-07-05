@@ -344,9 +344,10 @@ http://cvsweb.netbsd.org/bsdweb.cgi/src/lib/libc/net/getaddrinfo.c.diff?r1=1.82&
 #endif /* MS_WINDOWS */
 
 /* Provides the IsWindows7SP1OrGreater() function */
-#include <versionhelpers.h>
+//#include <versionhelpers.h>
+#define IsWindows7SP1OrGreater() 0
 // For if_nametoindex() and if_indextoname()
-#include <iphlpapi.h>
+//#include <iphlpapi.h>
 
 /* remove some flags on older version Windows during run-time.
    https://msdn.microsoft.com/en-us/library/windows/desktop/ms738596.aspx */
@@ -6692,7 +6693,10 @@ socket_if_nameindex(PyObject *self, PyObject *arg)
     if (list == NULL) {
         return NULL;
     }
-#ifdef MS_WINDOWS
+#if 1
+	return NULL;
+#else
+#ifndef MS_WINDOWS
     PMIB_IF_TABLE2 tbl;
     int ret;
     if ((ret = GetIfTable2Ex(MibIfTableRaw, &tbl)) != NO_ERROR) {
@@ -6764,6 +6768,7 @@ socket_if_nameindex(PyObject *self, PyObject *arg)
     if_freenameindex(ni);
     return list;
 #endif
+#endif 
 }
 
 PyDoc_STRVAR(if_nameindex_doc,
@@ -6775,7 +6780,7 @@ static PyObject *
 socket_if_nametoindex(PyObject *self, PyObject *args)
 {
     PyObject *oname;
-#ifdef MS_WINDOWS
+#ifndef MS_WINDOWS
     NET_IFINDEX index;
 #else
     unsigned long index;
@@ -6784,7 +6789,7 @@ socket_if_nametoindex(PyObject *self, PyObject *args)
                           PyUnicode_FSConverter, &oname))
         return NULL;
 
-    index = if_nametoindex(PyBytes_AS_STRING(oname));
+    index = 0; // if_nametoindex(PyBytes_AS_STRING(oname));
     Py_DECREF(oname);
     if (index == 0) {
         /* if_nametoindex() doesn't set errno */
@@ -6803,18 +6808,19 @@ Returns the interface index corresponding to the interface name if_name.");
 static PyObject *
 socket_if_indextoname(PyObject *self, PyObject *arg)
 {
-#ifdef MS_WINDOWS
+#ifndef MS_WINDOWS
     NET_IFINDEX index;
 #else
     unsigned long index;
 #endif
-    char name[IF_NAMESIZE + 1];
+    char name[MAX_PATH + 1];
 
     index = PyLong_AsUnsignedLong(arg);
     if (index == (unsigned long) -1)
         return NULL;
 
-    if (if_indextoname(index, name) == NULL) {
+//    if (if_indextoname(index, name) == NULL) {
+    if (1) {
         PyErr_SetFromErrno(PyExc_OSError);
         return NULL;
     }
