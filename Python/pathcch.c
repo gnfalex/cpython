@@ -1,13 +1,4 @@
-#include <stdarg.h>
-#include <string.h>
-
-#include "windef.h"
-#include "winbase.h"
-#include "strsafe.h"
-#include "shlwapi.h"
-#include "wininet.h"
-#include "intshcut.h"
-#include "winternl.h"
+#if 0
 #include "pathcch.h"
 
 
@@ -908,3 +899,4 @@ BOOL  PathIsUNCEx(const WCHAR *path, const WCHAR **server)
     if (server) *server = result;
     return !!result;
 }
+#endif

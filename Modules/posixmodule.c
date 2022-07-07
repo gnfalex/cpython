@@ -3925,8 +3925,9 @@ os__getfinalpathname_impl(PyObject *module, path_t *path)
 {
     HANDLE hFile;
     wchar_t buf[MAXPATHLEN], *target_path = buf;
-    int buf_size = Py_ARRAY_LENGTH(buf);
-    int result_length;
+    wchar_t szTempFile[MAX_PATH], *szTemp = szTempFile;
+    size_t buf_size = Py_ARRAY_LENGTH(buf);
+    size_t result_length;
     PyObject *result;
 
     Py_BEGIN_ALLOW_THREADS
@@ -3942,7 +3943,19 @@ os__getfinalpathname_impl(PyObject *module, path_t *path)
     Py_END_ALLOW_THREADS
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        return win32_error_object("CreateFileW", path->object);
+        Py_BEGIN_ALLOW_THREADS
+        hFile = CreateFileW(
+            path->wide,
+            0, /* desired access */
+            0, /* share mode */
+            NULL, /* security attributes */
+            OPEN_EXISTING,
+            /* FILE_FLAG_BACKUP_SEMANTICS is required to open a directory */
+            FILE_FLAG_BACKUP_SEMANTICS,
+            NULL);
+        Py_END_ALLOW_THREADS
+        if (hFile == INVALID_HANDLE_VALUE)
+          return win32_error_object("CreateFileW", path->object);
     }
 
     /* We have a good handle to the target, use it to determine the
@@ -3952,17 +3965,22 @@ os__getfinalpathname_impl(PyObject *module, path_t *path)
         result_length = GetFinalPathNameByHandleW_XP(hFile, target_path,
                                                   buf_size, VOLUME_NAME_DOS);
         Py_END_ALLOW_THREADS
-			if (!result_length) {
-		       WCHAR szTempFile[MAX_PATH];
-		         StringCchPrintf(szTempFile,
-		      	MAX_PATH,
-			    L"\\\\?\\%s",
-					 path->wide);
-		StringCchCopyN(target_path, MAX_PATH + 1, szTempFile, wcslen(szTempFile));
-		result_length = wcslen(target_path);
-		}
-		//printf("\norig_%ls*\ncopy_%ls*%d\n", path->wide, target_path, result_length);
-		if (!result_length) {
+        
+        if (!result_length) {
+          wcsncpy_s(target_path, MAX_PATH, path->wide, wcslen(path->wide));
+         // StringCchPrintf(target_path, MAX_PATH, L"%s", path->wide);
+        }
+        Py_BEGIN_ALLOW_THREADS
+        GetFullPathNameW (target_path, MAX_PATH, szTemp, NULL);
+        Py_END_ALLOW_THREADS
+        //StringCchCopyN(target_path, MAX_PATH, szTempFile, wcslen(szTempFile));
+        if (wcsstr(szTemp,L"\\\\?\\")) {
+          wcsncpy_s(target_path, MAX_PATH, szTemp, wcslen(szTempFile));
+        }else {
+          StringCchPrintf(target_path, MAX_PATH, L"\\\\?\\%s", szTemp);
+        }
+        result_length = wcslen(target_path);
+	    if (!result_length) {
             result = win32_error_object("GetFinalPathNameByHandleW",
                                          path->object);
             goto cleanup;
@@ -13691,35 +13709,7 @@ static PyObject *
 os__add_dll_directory_impl(PyObject *module, path_t *path)
 /*[clinic end generated code: output=80b025daebb5d683 input=1de3e6c13a5808c8]*/
 {
- /*   HMODULE hKernel32;
-    PAddDllDirectory AddDllDirectory;
-    DLL_DIRECTORY_COOKIE cookie = 0;
-    DWORD err = 0;
-
-    if (PySys_Audit("os.add_dll_directory", "(O)", path->object) < 0) {
-        return NULL;
-    }
-
-	*/
-    /* For Windows 7, we have to load this. As this will be a fairly
-       infrequent operation, just do it each time. Kernel32 is always
-       loaded. *//*
-    Py_BEGIN_ALLOW_THREADS
-    if (!(hKernel32 = GetModuleHandleW(L"kernel32")) ||
-        !(AddDllDirectory = (PAddDllDirectory)GetProcAddress(
-            hKernel32, "AddDllDirectory")) ||
-        !(cookie = (*AddDllDirectory)(path->wide))) {
-        err = GetLastError();
-    }
-    Py_END_ALLOW_THREADS
-
-    if (err) {
-        return win32_error_object_err("add_dll_directory",
-                                      path->object, err);
-    }
-
-    return PyCapsule_New(cookie, "DLL directory cookie", NULL);*/
-	Py_RETURN_NONE;
+    return win32_error_object_err("add_dll_directory", path->object, ERROR_CALL_NOT_IMPLEMENTED);
 }
 
 /*[clinic input]
@@ -13738,42 +13728,7 @@ static PyObject *
 os__remove_dll_directory_impl(PyObject *module, PyObject *cookie)
 /*[clinic end generated code: output=594350433ae535bc input=c1d16a7e7d9dc5dc]*/
 {
-  /*  HMODULE hKernel32;
-    PRemoveDllDirectory RemoveDllDirectory;
-    DLL_DIRECTORY_COOKIE cookieValue;
-    DWORD err = 0;
-
-    if (!PyCapsule_IsValid(cookie, "DLL directory cookie")) {
-        PyErr_SetString(PyExc_TypeError,
-            "Provided cookie was not returned from os.add_dll_directory");
-        return NULL;
-    }
-
-    cookieValue = (DLL_DIRECTORY_COOKIE)PyCapsule_GetPointer(
-        cookie, "DLL directory cookie");
-		*/
-    /* For Windows 7, we have to load this. As this will be a fairly
-       infrequent operation, just do it each time. Kernel32 is always
-       loaded. */
-    /*Py_BEGIN_ALLOW_THREADS
-    if (!(hKernel32 = GetModuleHandleW(L"kernel32")) ||
-        !(RemoveDllDirectory = (PRemoveDllDirectory)GetProcAddress(
-            hKernel32, "RemoveDllDirectory")) ||
-        !(*RemoveDllDirectory)(cookieValue)) {
-        err = GetLastError();
-    }
-    Py_END_ALLOW_THREADS
-
-    if (err) {
-        return win32_error_object_err("remove_dll_directory",
-                                      NULL, err);
-    }
-
-    if (PyCapsule_SetName(cookie, NULL)) {
-        return NULL;
-    }
-*/
-    Py_RETURN_NONE;
+        return win32_error_object_err("remove_dll_directory", NULL, ERROR_CALL_NOT_IMPLEMENTED);
 }
 
 #endif
@@ -14832,6 +14787,7 @@ INITFUNC(void)
 
 #define BUFSIZE 256
 DWORD GetFinalPathNameByHandleW_XP(HANDLE hFile, LPWSTR  lpszFilePath, DWORD  cchFilePath, DWORD  dwFlags)
+//https://docs.microsoft.com/ru-ru/windows/win32/memory/obtaining-a-file-name-from-a-file-handle?redirectedfrom=MSDN
 {
 	BOOL bSuccess = FALSE;
 	//TCHAR pszFilename[MAX_PATH + 1];

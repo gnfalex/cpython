@@ -1,3 +1,15 @@
+#if 0
+#include <stdarg.h>
+#include <string.h>
+
+#include "windef.h"
+#include "winbase.h"
+#include "strsafe.h"
+#include "shlwapi.h"
+#include "wininet.h"
+#include "intshcut.h"
+#include "winternl.h"
+
 #define PATHCCH_NONE                            0x00
 #define PATHCCH_ALLOW_LONG_PATHS                0x01
 #define PATHCCH_FORCE_ENABLE_LONG_NAME_PROCESS  0x02
@@ -10,7 +22,7 @@
 
 #define heap_alloc malloc
 
-HRESULT  PathAllocCanonicalize(const WCHAR *path_in, DWORD flags, WCHAR **path_out);
+HRESULT PathAllocCanonicalize(const WCHAR *path_in, DWORD flags, WCHAR **path_out);
 HRESULT  PathAllocCombine(const WCHAR *path1, const WCHAR *path2, DWORD flags, WCHAR **out);
 HRESULT  PathCchAddBackslash(WCHAR *path, SIZE_T size);
 HRESULT  PathCchAddBackslashEx(WCHAR *path, SIZE_T size, WCHAR **end, SIZE_T *remaining);
@@ -32,3 +44,4 @@ HRESULT  PathCchSkipRoot(const WCHAR *path, const WCHAR **root_end);
 HRESULT  PathCchStripPrefix(WCHAR *path, SIZE_T size);
 HRESULT  PathCchStripToRoot(WCHAR *path, SIZE_T size);
 BOOL     PathIsUNCEx(const WCHAR *path, const WCHAR **server);
+#endif
