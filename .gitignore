@@ -56,6 +56,8 @@ Lib/distutils/command/*.pdb
 Lib/lib2to3/*.pickle
 Lib/test/data/*
 !Lib/test/data/README
+Lib/site-packages/*
+!Lib/site-packages/README
 /Makefile
 /Makefile.pre
 Misc/python.pc
@@ -115,7 +117,8 @@ PCbuild/win32/
 Tools/msi/obj
 Tools/ssl/amd64
 Tools/ssl/win32
-
+Scripts/
+Share/
 # Two-trick pony for OSX and other case insensitive file systems:
 # Ignore ./python binary on Unix but still look into ./Python/ directory.
 /python
