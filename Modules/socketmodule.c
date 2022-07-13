@@ -6683,7 +6683,7 @@ Set the default timeout in seconds (float) for new socket objects.\n\
 A value of None indicates that new socket objects have no timeout.\n\
 When the socket module is first imported, the default is None.");
 
-#if defined(HAVE_IF_NAMEINDEX) || defined(MS_WINDOWS)
+#if defined(HAVE_IF_NAMEINDEX)
 /* Python API for getting interface indices and names */
 
 static PyObject *
@@ -6841,7 +6841,7 @@ static PyMethodDef socket_methods[] = {
      METH_NOARGS, getdefaulttimeout_doc},
     {"setdefaulttimeout",       socket_setdefaulttimeout,
      METH_O, setdefaulttimeout_doc},
-#if defined(HAVE_IF_NAMEINDEX) || defined(MS_WINDOWS)
+#if defined(HAVE_IF_NAMEINDEX)
     {"if_nameindex", socket_if_nameindex,
      METH_NOARGS, if_nameindex_doc},
     {"if_nametoindex", socket_if_nametoindex,
@@ -7870,10 +7870,6 @@ PyInit__socket(void)
 #endif
 #ifdef  IPV6_UNICAST_HOPS
     PyModule_AddIntMacro(m, IPV6_UNICAST_HOPS);
-#endif
-    /* Additional IPV6 socket options, defined in RFC 3493 */
-#ifdef IPV6_V6ONLY
-    PyModule_AddIntMacro(m, IPV6_V6ONLY);
 #endif
     /* Advanced IPV6 socket options, from RFC 3542 */
 #ifdef IPV6_CHECKSUM

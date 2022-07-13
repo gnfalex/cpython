@@ -30,11 +30,12 @@
 //#undef SIO_GET_MULTICAST_FILTER
 # ifdef SIO_GET_MULTICAST_FILTER
 #  include <mstcpip.h> /* for SIO_RCVALL */
+#  include <Wspiapi.h>
 #  define HAVE_ADDRINFO
 #  define HAVE_SOCKADDR_STORAGE
 #  define HAVE_GETADDRINFO
 #  define HAVE_GETNAMEINFO
-#  undef ENABLE_IPV6
+#  define ENABLE_IPV6
 # else
 typedef int socklen_t;
 # endif /* IPPROTO_IPV6 */
