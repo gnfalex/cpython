@@ -111,6 +111,7 @@
     <ResourceCompile Include="..\PC\python_exe.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\externals\openssl\include\applink.c" />
     <ClCompile Include="..\Programs\python.c" />
   </ItemGroup>
   <ItemGroup>

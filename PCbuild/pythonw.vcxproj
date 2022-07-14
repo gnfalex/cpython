@@ -103,6 +103,7 @@
     <ResourceCompile Include="..\PC\pythonw_exe.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\externals\openssl\include\applink.c" />
     <ClCompile Include="..\PC\WinMain.c" />
   </ItemGroup>
   <ItemGroup>

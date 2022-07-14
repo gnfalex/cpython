@@ -22,5 +22,6 @@
     <ClCompile Include="..\Programs\python.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\externals\openssl\include\applink.c" />
   </ItemGroup>
 </Project>

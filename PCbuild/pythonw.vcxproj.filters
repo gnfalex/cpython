@@ -15,5 +15,6 @@
     <ClCompile Include="..\PC\WinMain.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\externals\openssl\include\applink.c" />
   </ItemGroup>
 </Project>
