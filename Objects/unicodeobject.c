@@ -7896,7 +7896,7 @@ static DWORD
 encode_code_page_flags(UINT code_page, const char *errors)
 {
     if (code_page == CP_UTF8) {
-        return WC_ERR_INVALID_CHARS;
+        return 0; // XP don't know about WC_ERR_INVALID_CHARS
     }
     else if (code_page == CP_UTF7) {
         /* CP_UTF7 only supports flags=0 */
@@ -7961,6 +7961,15 @@ _Py_COMP_DIAG_POP
     }
 #endif /* USE_UNICODE_WCHAR_CACHE */
     assert(size <= INT_MAX);
+
+    if (code_page == CP_UTF8) {
+        for (size_t i = 0; i < wcslen(p); i++) {
+            if (p[i] >= 0xD800 && p[i] <= 0xDFFF) {
+                SetLastError(ERROR_NO_UNICODE_TRANSLATION);
+                goto error;
+            }
+        }
+    }
 
     /* First get the size of the result */
     outsize = WideCharToMultiByte(code_page, flags,
@@ -8120,11 +8129,14 @@ encode_code_page_errors(UINT code_page, PyObject **outbytes,
             chars[1] = Py_UNICODE_LOW_SURROGATE(ch);
             charsize = 2;
         }
-
-        outsize = WideCharToMultiByte(code_page, flags,
-                                      chars, charsize,
-                                      buffer, Py_ARRAY_LENGTH(buffer),
-                                      NULL, pusedDefaultChar);
+        if (code_page == CP_UTF8 && ch >= 0xD800 && ch <= 0xDFFF) {
+            outsize = 0;
+        } else {
+            outsize = WideCharToMultiByte(code_page, flags,
+                chars, charsize,
+                buffer, Py_ARRAY_LENGTH(buffer),
+                NULL, pusedDefaultChar);
+        }
         if (outsize > 0) {
             if (pusedDefaultChar == NULL || !(*pusedDefaultChar))
             {

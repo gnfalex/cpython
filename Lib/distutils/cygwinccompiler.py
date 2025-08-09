@@ -80,6 +80,10 @@ def get_msvcr():
         elif msc_ver == '1600':
             # VS2010 / MSVC 10.0
             return ['msvcr100']
+        elif msc_ver == '1900':
+            return ['vcruntime140']
+        elif msc_ver == '1915':
+            return ['vcruntime140']
         else:
             raise ValueError("Unknown MS Compiler version %s " % msc_ver)
 

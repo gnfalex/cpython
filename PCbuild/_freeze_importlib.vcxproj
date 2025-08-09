@@ -71,12 +71,19 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>_freeze_importlib</RootNamespace>
     <SupportPGO>false</SupportPGO>
+    <WindowsTargetPlatformVersion>$(DefaultWindowsSDKVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="python.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <PlatformToolset>v140_xp</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <PlatformToolset>v140_xp</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -148,8 +155,7 @@
     <Error Text="Frozen importlib files were updated. Please rebuild to pick up the changes.%0D%0A%0D%0AIf you are not developing on Windows but you see this error on a continuous integration build, please run 'make regen-all' and commit anything that changes."
            Condition="'@(_Updated)' != '' and $(Configuration) == 'Release'" />
   </Target>
-  <Target Name="RebuildImportLib" AfterTargets="AfterBuild" Condition="$(Configuration) == 'Debug' or $(Configuration) == 'Release'"
-          DependsOnTargets="_RebuildImportLib">
+  <Target Name="RebuildImportLib" AfterTargets="AfterBuild" Condition="$(Configuration) == 'Debug' or $(Configuration) == 'Release'" DependsOnTargets="_RebuildImportLib">
   </Target>
   <Target Name="_CleanImportLib" BeforeTargets="CoreClean">
     <ItemGroup>
