@@ -399,9 +399,9 @@ class MSVCCompiler(CCompiler) :
 
         self.preprocess_options = None
         if self.__arch == "x86":
-            self.compile_options = [ '/nologo', '/Ox', '/MD', '/W3',
+            self.compile_options = [ '/nologo', '/Ox', '/MD', '/W3','/arch:SSE',
                                      '/DNDEBUG']
-            self.compile_options_debug = ['/nologo', '/Od', '/MDd', '/W3',
+            self.compile_options_debug = ['/nologo', '/Od', '/MDd', '/W3','/arch:SSE',
                                           '/Z7', '/D_DEBUG']
         else:
             # Win64

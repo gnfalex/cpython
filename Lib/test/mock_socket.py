@@ -136,7 +136,7 @@ def getdefaulttimeout():
     return _defaulttimeout
 
 
-def getfqdn():
+def getfqdn(name=""):
     return ""
 
 

@@ -931,7 +931,7 @@ _default_compilers = (
     # OS name mappings
     ('posix', 'unix'),
     ('nt', 'msvc'),
-
+#    ('nt','mingw32')
     )
 
 def get_default_compiler(osname=None, platform=None):
@@ -944,6 +944,11 @@ def get_default_compiler(osname=None, platform=None):
        The default values are os.name and sys.platform in case the
        parameters are not given.
     """
+    if "PYTHONCOMPILER" in os.environ:
+      if os.environ["PYTHONCOMPILER"] in ['unix','msvc','cygwin','mingw32','bcpp','mingw']:
+        if os.environ["PYTHONCOMPILER"]=="mingw" : os.environ["PYTHONCOMPILER"]="mingw32"
+        return os.environ["PYTHONCOMPILER"]
+    print ("OK1")
     if osname is None:
         osname = os.name
     if platform is None:

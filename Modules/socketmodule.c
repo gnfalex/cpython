@@ -336,9 +336,10 @@ http://cvsweb.netbsd.org/bsdweb.cgi/src/lib/libc/net/getaddrinfo.c.diff?r1=1.82&
 #endif /* MS_WINDOWS */
 
 /* Provides the IsWindows7SP1OrGreater() function */
-#include <versionhelpers.h>
+//#include <versionhelpers.h>
+#define IsWindows7SP1OrGreater() 0
 // For if_nametoindex() and if_indextoname()
-#include <iphlpapi.h>
+//#include <iphlpapi.h>
 
 /* remove some flags on older version Windows during run-time.
    https://msdn.microsoft.com/en-us/library/windows/desktop/ms738596.aspx */
@@ -6767,88 +6768,13 @@ Set the default timeout in seconds (float) for new socket objects.\n\
 A value of None indicates that new socket objects have no timeout.\n\
 When the socket module is first imported, the default is None.");
 
-#if defined(HAVE_IF_NAMEINDEX) || defined(MS_WINDOWS)
+#if defined(HAVE_IF_NAMEINDEX)
 /* Python API for getting interface indices and names */
 
 static PyObject *
 socket_if_nameindex(PyObject *self, PyObject *arg)
 {
-    PyObject *list = PyList_New(0);
-    if (list == NULL) {
-        return NULL;
-    }
-#ifdef MS_WINDOWS
-    PMIB_IF_TABLE2 tbl;
-    int ret;
-    if ((ret = GetIfTable2Ex(MibIfTableRaw, &tbl)) != NO_ERROR) {
-        Py_DECREF(list);
-        // ret is used instead of GetLastError()
-        return PyErr_SetFromWindowsErr(ret);
-    }
-    for (ULONG i = 0; i < tbl->NumEntries; ++i) {
-        MIB_IF_ROW2 r = tbl->Table[i];
-        WCHAR buf[NDIS_IF_MAX_STRING_SIZE + 1];
-        if ((ret = ConvertInterfaceLuidToNameW(&r.InterfaceLuid, buf,
-                                               Py_ARRAY_LENGTH(buf)))) {
-            Py_DECREF(list);
-            FreeMibTable(tbl);
-            // ret is used instead of GetLastError()
-            return PyErr_SetFromWindowsErr(ret);
-        }
-        PyObject *tuple = Py_BuildValue("Iu", r.InterfaceIndex, buf);
-        if (tuple == NULL || PyList_Append(list, tuple) == -1) {
-            Py_XDECREF(tuple);
-            Py_DECREF(list);
-            FreeMibTable(tbl);
-            return NULL;
-        }
-        Py_DECREF(tuple);
-    }
-    FreeMibTable(tbl);
-    return list;
-#else
-    int i;
-    struct if_nameindex *ni;
-
-    ni = if_nameindex();
-    if (ni == NULL) {
-        Py_DECREF(list);
-        PyErr_SetFromErrno(PyExc_OSError);
-        return NULL;
-    }
-
-#ifdef _Py_MEMORY_SANITIZER
-    __msan_unpoison(ni, sizeof(ni));
-    __msan_unpoison(&ni[0], sizeof(ni[0]));
-#endif
-    for (i = 0; ni[i].if_index != 0 && i < INT_MAX; i++) {
-#ifdef _Py_MEMORY_SANITIZER
-        /* This one isn't the end sentinel, the next one must exist. */
-        __msan_unpoison(&ni[i+1], sizeof(ni[0]));
-        /* Otherwise Py_BuildValue internals are flagged by MSan when
-           they access the not-msan-tracked if_name string data. */
-        {
-            char *to_sanitize = ni[i].if_name;
-            do {
-                __msan_unpoison(to_sanitize, 1);
-            } while (*to_sanitize++ != '\0');
-        }
-#endif
-        PyObject *ni_tuple = Py_BuildValue("IO&",
-                ni[i].if_index, PyUnicode_DecodeFSDefault, ni[i].if_name);
-
-        if (ni_tuple == NULL || PyList_Append(list, ni_tuple) == -1) {
-            Py_XDECREF(ni_tuple);
-            Py_DECREF(list);
-            if_freenameindex(ni);
-            return NULL;
-        }
-        Py_DECREF(ni_tuple);
-    }
-
-    if_freenameindex(ni);
-    return list;
-#endif
+    return PyErr_SetFromWindowsErr(ERROR_CALL_NOT_IMPLEMENTED);
 }
 
 PyDoc_STRVAR(if_nameindex_doc,
@@ -6859,25 +6785,7 @@ Returns a list of network interface information (index, name) tuples.");
 static PyObject *
 socket_if_nametoindex(PyObject *self, PyObject *args)
 {
-    PyObject *oname;
-#ifdef MS_WINDOWS
-    NET_IFINDEX index;
-#else
-    unsigned long index;
-#endif
-    if (!PyArg_ParseTuple(args, "O&:if_nametoindex",
-                          PyUnicode_FSConverter, &oname))
-        return NULL;
-
-    index = if_nametoindex(PyBytes_AS_STRING(oname));
-    Py_DECREF(oname);
-    if (index == 0) {
-        /* if_nametoindex() doesn't set errno */
-        PyErr_SetString(PyExc_OSError, "no interface with this name");
-        return NULL;
-    }
-
-    return PyLong_FromUnsignedLong(index);
+    return PyErr_SetFromWindowsErr(ERROR_CALL_NOT_IMPLEMENTED);
 }
 
 PyDoc_STRVAR(if_nametoindex_doc,
@@ -6888,23 +6796,7 @@ Returns the interface index corresponding to the interface name if_name.");
 static PyObject *
 socket_if_indextoname(PyObject *self, PyObject *arg)
 {
-#ifdef MS_WINDOWS
-    NET_IFINDEX index;
-#else
-    unsigned long index;
-#endif
-    char name[IF_NAMESIZE + 1];
-
-    index = PyLong_AsUnsignedLong(arg);
-    if (index == (unsigned long) -1)
-        return NULL;
-
-    if (if_indextoname(index, name) == NULL) {
-        PyErr_SetFromErrno(PyExc_OSError);
-        return NULL;
-    }
-
-    return PyUnicode_DecodeFSDefault(name);
+    return PyErr_SetFromWindowsErr(ERROR_CALL_NOT_IMPLEMENTED);
 }
 
 PyDoc_STRVAR(if_indextoname_doc,
@@ -7034,7 +6926,7 @@ static PyMethodDef socket_methods[] = {
      METH_NOARGS, getdefaulttimeout_doc},
     {"setdefaulttimeout",       socket_setdefaulttimeout,
      METH_O, setdefaulttimeout_doc},
-#if defined(HAVE_IF_NAMEINDEX) || defined(MS_WINDOWS)
+#if defined(HAVE_IF_NAMEINDEX)
     {"if_nameindex", socket_if_nameindex,
      METH_NOARGS, if_nameindex_doc},
     {"if_nametoindex", socket_if_nametoindex,
@@ -8117,10 +8009,6 @@ PyInit__socket(void)
 #endif
 #ifdef  IPV6_UNICAST_HOPS
     PyModule_AddIntMacro(m, IPV6_UNICAST_HOPS);
-#endif
-    /* Additional IPV6 socket options, defined in RFC 3493 */
-#ifdef IPV6_V6ONLY
-    PyModule_AddIntMacro(m, IPV6_V6ONLY);
 #endif
     /* Advanced IPV6 socket options, from RFC 3542 */
 #ifdef IPV6_CHECKSUM

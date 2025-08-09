@@ -435,7 +435,8 @@ def _parse_args(args, **kwargs):
             ns.ignore_tests = []
         with open(ns.ignore_filename) as fp:
             for line in fp:
-                ns.ignore_tests.append(line.strip())
+                if len(line.split('#')[0].strip()) > 0:
+                    ns.ignore_tests.append(line.split('#')[0].strip())
     if ns.forever:
         # --forever implies --failfast
         ns.failfast = True
