@@ -1,3 +1,4 @@
+#define ALIGNOF_SIZE_T 8
 /*
 
 Unicode implementation based on original code by Fredrik Lundh,

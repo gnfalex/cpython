@@ -72,15 +72,10 @@
     <Touch Files="@(_TokenOutputs)" />
   </Target>
 
-  <Target Name="_RegenKeywords" Inputs="@(_KeywordSources)" Outputs="@(_KeywordOutputs)">
-    <Message Text="Regenerate @(_KeywordOutputs->'%(Filename)%(Extension)',' ')" Importance="high" />
-    <Exec Command="set PYTHONPATH=Tools\peg_generator%0D%0A$(PythonForBuild) -m pegen.keywordgen Grammar\python.gram Grammar\Tokens Lib\keyword.py"
-          WorkingDirectory="$(PySourcePath)" />
-  </Target>
 
   <Target Name="Regen"
           Condition="$(Configuration) != 'PGUpdate'"
-          DependsOnTargets="_TouchRegenSources;_RegenPegen;_RegenAST_H;_RegenOpcodes;_RegenTokens;_RegenKeywords">
+          DependsOnTargets="_TouchRegenSources;_RegenPegen;_RegenAST_H;_RegenOpcodes;_RegenTokens">
     <Message Text="Generated sources are up to date" Importance="high" />
   </Target>
 

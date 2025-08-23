@@ -1,3 +1,6 @@
+#define ALIGNOF_SIZE_T 8
+#define ALIGNOF_LONG 8
+
 /* stringlib: codec implementations */
 
 #if !STRINGLIB_IS_UNICODE

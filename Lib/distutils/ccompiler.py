@@ -948,7 +948,7 @@ def get_default_compiler(osname=None, platform=None):
       if os.environ["PYTHONCOMPILER"] in ['unix','msvc','cygwin','mingw32','bcpp','mingw']:
         if os.environ["PYTHONCOMPILER"]=="mingw" : os.environ["PYTHONCOMPILER"]="mingw32"
         return os.environ["PYTHONCOMPILER"]
-    print ("OK1")
+#    print ("OK1")
     if osname is None:
         osname = os.name
     if platform is None:

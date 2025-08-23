@@ -1,3 +1,4 @@
+#define ALIGNOF_SIZE_T 8
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"
 #include "pycore_abstract.h"   // _PyIndex_Check()
