@@ -1051,10 +1051,11 @@ winreg_DeleteKeyEx_impl(PyObject *module, HKEY key,
         return NULL;
     }
     Py_BEGIN_ALLOW_THREADS
-    rc = RegDeleteKeyExW(key, sub_key, access, reserved);
+//    rc = RegDeleteKeyExW(key, sub_key, access, reserved);
+    rc = RegDeleteKeyW(key, sub_key);
     Py_END_ALLOW_THREADS
     if (rc != ERROR_SUCCESS)
-        return PyErr_SetFromWindowsErrWithFunction(rc, "RegDeleteKeyEx");
+        return PyErr_SetFromWindowsErrWithFunction(rc, "RegDeleteKey");
     Py_RETURN_NONE;
 }
 

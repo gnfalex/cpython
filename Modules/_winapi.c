@@ -1666,10 +1666,10 @@ _winapi_LCMapStringEx_impl(PyObject *module, PyObject *locale, DWORD flags,
                            PyObject *src)
 /*[clinic end generated code: output=8ea4c9d85a4a1f23 input=2fa6ebc92591731b]*/
 {
-    if (flags & (LCMAP_SORTHANDLE | LCMAP_HASH | LCMAP_BYTEREV |
+   /* if (flags & (LCMAP_SORTHANDLE | LCMAP_HASH | LCMAP_BYTEREV |
                  LCMAP_SORTKEY)) {
         return PyErr_Format(PyExc_ValueError, "unsupported flags");
-    }
+    }*/
 
     wchar_t *locale_ = PyUnicode_AsWideCharString(locale, NULL);
     if (!locale_) {
@@ -2382,7 +2382,7 @@ static int winapi_exec(PyObject *m)
     WINAPI_CONSTANT(F_DWORD, LCMAP_LINGUISTIC_CASING);
     WINAPI_CONSTANT(F_DWORD, LCMAP_LOWERCASE);
     WINAPI_CONSTANT(F_DWORD, LCMAP_SIMPLIFIED_CHINESE);
-    WINAPI_CONSTANT(F_DWORD, LCMAP_TITLECASE);
+//    WINAPI_CONSTANT(F_DWORD, LCMAP_TITLECASE);
     WINAPI_CONSTANT(F_DWORD, LCMAP_TRADITIONAL_CHINESE);
     WINAPI_CONSTANT(F_DWORD, LCMAP_UPPERCASE);
 

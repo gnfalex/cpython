@@ -71,7 +71,6 @@
     <nasmDir>$(ExternalsDir)\nasm-2.11.06\</nasmDir>
     <zlibDir>$(ExternalsDir)\zlib-1.2.12\</zlibDir>
     
->>>>>>> 207cdcfec18 (py39)
     <!-- Suffix for all binaries when building for debug -->
     <PyDebugExt Condition="'$(PyDebugExt)' == '' and $(Configuration) == 'Debug'">_d</PyDebugExt>
     

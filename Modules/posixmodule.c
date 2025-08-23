@@ -4509,7 +4509,7 @@ os_mkdir_impl(PyObject *module, path_t *path, int mode, int dir_fd)
 
 #ifdef MS_WINDOWS
     Py_BEGIN_ALLOW_THREADS
-    if (mode == 0700 /* 0o700 */) {
+    if (0 && mode == 0700 /* 0o700 */) {
         ULONG sdSize;
         pSecAttr = &secAttr;
         // Set a discretionary ACL (D) that is protected (P) and includes

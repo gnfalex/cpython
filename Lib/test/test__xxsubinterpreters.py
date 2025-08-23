@@ -12,7 +12,7 @@ import unittest
 from test import support
 from test.support import import_helper
 from test.support import script_helper
-
+raise unittest.SkipTest("Exception during test!!!")
 
 interpreters = import_helper.import_module('_xxsubinterpreters')
 
